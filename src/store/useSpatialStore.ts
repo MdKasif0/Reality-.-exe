@@ -24,6 +24,7 @@ interface SpatialStoreState {
   strokes: Stroke3D[];
   activeStroke: Stroke3D | null;
   undoStack: UndoAction[];
+  redoStack: UndoAction[];
   pointer: Pointer3DState;
   settings: SettingsState;
   onboardingActive: boolean;
@@ -105,6 +106,7 @@ class SpatialStore {
       strokes: [],
       activeStroke: null,
       undoStack: [],
+      redoStack: [],
       pointer: {
         active: false,
         position: [0, 0, 0],
@@ -121,6 +123,21 @@ class SpatialStore {
         soundEffects: true,
         reducedMotion: false,
         mirrorCamera: true,
+        showDiagnostics: false,
+        gestureActions: {
+          OPEN_PALM: 'TOGGLE_RADIAL_MENU',
+          THUMBS_UP: 'CYCLE_COLOR',
+          V_SIGN: 'SWITCH_MODE',
+          AIR_CIRCLE: 'TOGGLE_RADIAL_MENU',
+          FIST: 'FOLD_CONTROLS',
+        },
+        calibration: {
+          minX: 0.1,
+          maxX: 0.9,
+          minY: 0.1,
+          maxY: 0.9,
+          calibrated: false,
+        },
         ...savedSettings,
       },
       onboardingActive: false,

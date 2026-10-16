@@ -97,6 +97,31 @@ export interface VisionState {
   latencyMs: number;
 }
 
+export type GestureLifecycleState =
+  | 'NOT_DETECTED'
+  | 'CANDIDATE'
+  | 'RECOGNIZED'
+  | 'HELD'
+  | 'RELEASED';
+
+export type GestureAction =
+  | 'TOGGLE_RADIAL_MENU'
+  | 'CYCLE_COLOR'
+  | 'SWITCH_MODE'
+  | 'SPAWN_OBJECT'
+  | 'FOLD_CONTROLS'
+  | 'NONE';
+
+export type GestureCustomizationMap = Partial<Record<GestureType, GestureAction>>;
+
+export interface CalibrationRegion {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  calibrated: boolean;
+}
+
 export interface SettingsState {
   backgroundMode: BackgroundMode;
   smoothingFactor: number;
@@ -105,6 +130,9 @@ export interface SettingsState {
   soundEffects: boolean;
   reducedMotion: boolean;
   mirrorCamera: boolean;
+  showDiagnostics: boolean;
+  gestureActions: GestureCustomizationMap;
+  calibration: CalibrationRegion;
 }
 
 export interface Pointer3DState {
@@ -115,3 +143,4 @@ export interface Pointer3DState {
   targetedObjectId: string | null;
   handIndex: number;
 }
+
