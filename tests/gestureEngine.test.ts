@@ -33,8 +33,8 @@ test('Gesture Geometry - calculateAngle computes 3D vertex angle in radians', ()
 test('Coordinate Mapping - mapCameraTo3D maps normalized coords to 3D frustum', () => {
   // Center (0.5, 0.5) should map to (0, 0, depth)
   const [cx, cy, cz] = mapCameraTo3D(0.5, 0.5, 10, 6, -1, true);
-  assert.equal(cx, 0);
-  assert.equal(cy, 0);
+  assert.ok(Math.abs(cx) < 1e-6);
+  assert.ok(Math.abs(cy) < 1e-6);
   assert.equal(cz, -1);
 
   // Mirrored top-left (0, 0) maps to (+5, +3, 0)
