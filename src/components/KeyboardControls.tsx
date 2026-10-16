@@ -17,6 +17,13 @@ export function KeyboardControls({ onToggleGuide, onToggleSettings }: KeyboardCo
         return;
       }
 
+      // Undo with Ctrl+Z or Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        spatialStore.undo();
+        return;
+      }
+
       const storeState = spatialStore.getState();
       const currentId = storeState.selectedObjectId;
       const currentObj = storeState.objects.find((o) => o.id === currentId);
@@ -24,6 +31,24 @@ export function KeyboardControls({ onToggleGuide, onToggleSettings }: KeyboardCo
       const STEP = e.shiftKey ? 0.35 : 0.15;
 
       switch (e.key) {
+        // Reality Scan mode toggle with 'r' / 'R'
+        case 'r':
+        case 'R': {
+          e.preventDefault();
+          const next = storeState.spatialMode === 'SCAN_REALITY' ? 'MANIPULATE' : 'SCAN_REALITY';
+          spatialStore.setSpatialMode(next);
+          break;
+        }
+
+        // Air Draw mode toggle with 'q' / 'Q'
+        case 'q':
+        case 'Q': {
+          e.preventDefault();
+          const next = storeState.spatialMode === 'AIR_DRAW' ? 'MANIPULATE' : 'AIR_DRAW';
+          spatialStore.setSpatialMode(next);
+          break;
+        }
+
         // Grab toggle with Spacebar
         case ' ': {
           e.preventDefault();

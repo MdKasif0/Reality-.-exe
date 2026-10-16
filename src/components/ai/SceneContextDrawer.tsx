@@ -3,7 +3,6 @@ import {
   Boxes,
   Check,
   Edit2,
-  Layers,
   MessageSquare,
   Sparkles,
   Trash2,

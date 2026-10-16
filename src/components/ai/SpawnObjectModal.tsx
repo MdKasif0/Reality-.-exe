@@ -8,7 +8,6 @@ import {
   X,
   Play,
   RotateCw,
-  Palette,
   Check,
   AlertCircle,
 } from 'lucide-react';
@@ -37,7 +36,6 @@ export function SpawnObjectModal({ isOpen, onClose }: SpawnObjectModalProps) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [recentlySpawned, setRecentlySpawned] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -90,7 +88,6 @@ export function SpawnObjectModal({ isOpen, onClose }: SpawnObjectModalProps) {
     };
 
     spatialStore.spawnDirectObject(newObj);
-    setRecentlySpawned(newObj.name);
     setTimeout(() => onClose(), 350);
   };
 
@@ -103,8 +100,7 @@ export function SpawnObjectModal({ isOpen, onClose }: SpawnObjectModalProps) {
 
     try {
       const spec = await aiService.generateSpecFromPrompt(targetPrompt);
-      const obj = AIObjectFactory.spawnFromSpec(spec);
-      setRecentlySpawned(obj.name);
+      AIObjectFactory.spawnFromSpec(spec);
       setTimeout(() => onClose(), 400);
     } catch (err: any) {
       console.error('AI Object synthesis failed:', err);

@@ -1,4 +1,4 @@
-import { Check, Crosshair, Move, Sparkles, X } from 'lucide-react';
+import { Crosshair, Move, Sparkles } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { physicalObjectSelector } from '../../spatial/physicalObjectSelector';
 import { useSpatialStore } from '../../store/useSpatialStore';
@@ -84,7 +84,7 @@ export function TargetingReticleOverlay({ onTriggerScan, isScanning }: Targeting
       physicalObjectSelector.adjustBox({}, false);
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch (err) {
+      } catch {
         // ignore
       }
     }

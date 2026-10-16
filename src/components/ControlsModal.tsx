@@ -11,22 +11,36 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
   const gestures = [
     {
       name: 'Pinch (Thumb + Index)',
-      action: 'Grab & Move',
-      desc: 'Bring thumb and index fingertips together near any 3D object to attach it. Move your hand to translate it, then separate fingers to drop.',
+      action: 'Grab / Reality Scan',
+      desc: 'Bring thumb and index fingertips together near any 3D object to attach it. In Reality Scan mode, pinch triggers vision analysis of the targeted physical object.',
       badge: 'Primary Interaction',
       color: 'border-cyan-500/40 text-cyan-400 bg-cyan-950/20',
     },
     {
+      name: 'Air Circle (Index Sweep)',
+      action: 'Summon Radial Hub',
+      desc: 'Draw a complete circular trajectory in the air with your index fingertip. Summons the 3D contextual radial menu at your hand position.',
+      badge: 'Trajectory Trigger',
+      color: 'border-purple-500/40 text-purple-400 bg-purple-950/20',
+    },
+    {
+      name: 'Air Drawing (Pinch & Trace)',
+      action: 'Sculpt 3D Strokes',
+      desc: 'In Air Draw mode, pinch thumb & index while moving through space to sculpt glowing 3D Catmull-Rom holographic trails.',
+      badge: 'Spatial Art',
+      color: 'border-pink-500/40 text-pink-400 bg-pink-950/20',
+    },
+    {
       name: 'Point (Index Finger)',
-      action: 'Virtual Pointer',
-      desc: 'Extend your index finger while keeping other fingers tucked. The 3D reticle aligns with your fingertip to target objects.',
+      action: 'Targeting Reticle',
+      desc: 'Extend index finger. Aligns virtual pointer to target 3D objects or aim the physical Reality Scan reticle at real-world items.',
       badge: 'Targeting',
       color: 'border-emerald-500/40 text-emerald-400 bg-emerald-950/20',
     },
     {
       name: 'Open Palm',
-      action: 'Summon Spatial Hub',
-      desc: 'Spread all fingers wide facing the camera. Summons the holographic floating radial menu for quick color and scale commands.',
+      action: 'Contextual Interface',
+      desc: 'Spread all fingers wide facing the camera. Summons the holographic floating radial menu for quick geometry and visual commands.',
       badge: 'Context Menu',
       color: 'border-sky-500/40 text-sky-400 bg-sky-950/20',
     },
@@ -45,16 +59,16 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
       color: 'border-teal-500/40 text-teal-400 bg-teal-950/20',
     },
     {
-      name: 'Two-Hand Expansion',
-      action: 'Dual Scaling',
-      desc: 'Bring both hands into view and move them closer or further apart to smoothly scale the active 3D object.',
-      badge: 'Proportional Scale',
+      name: 'Two-Hand Expansion & Rotation',
+      action: 'Dual Scaling & Rotation',
+      desc: 'Bring both hands into view: move closer or further apart to scale, or rotate hand angle to orient the selected 3D object.',
+      badge: 'Dual Hand Transform',
       color: 'border-fuchsia-500/40 text-fuchsia-400 bg-fuchsia-950/20',
     },
     {
       name: 'Closed Fist',
-      action: 'Standby / Fold',
-      desc: 'Curl all fingers tightly into a fist to close floating menus and enter passive observation state.',
+      action: 'Standby / Dismiss',
+      desc: 'Curl all fingers into a fist to close floating menus and dismiss contextual cards.',
       badge: 'Passive',
       color: 'border-amber-500/40 text-amber-400 bg-amber-950/20',
     },
@@ -62,13 +76,16 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
 
   const shortcuts = [
     { key: 'Space', desc: 'Pinch / Grab focused object' },
+    { key: 'Ctrl+Z / Cmd+Z', desc: 'Undo last spatial operation' },
+    { key: 'R', desc: 'Toggle Reality Scan mode' },
+    { key: 'Q', desc: 'Toggle Air Draw 3D strokes' },
     { key: 'Arrows / WASD', desc: 'Translate selected object in 3D' },
     { key: '+ / -', desc: 'Scale selected object larger or smaller' },
     { key: 'C', desc: 'Cycle holographic color' },
     { key: 'M', desc: 'Toggle Manipulate / Navigate mode' },
     { key: 'Tab', desc: 'Cycle selection through virtual objects' },
     { key: 'P', desc: 'Pause / Resume vision hand tracking' },
-    { key: 'Delete / Backspace', desc: 'Delete active virtual object' },
+    { key: 'Delete', desc: 'Delete active virtual object' },
   ];
 
   return (

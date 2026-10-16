@@ -3,7 +3,6 @@ import {
   AskRealityMessage,
   BoundingBox2D,
   RealityScanResult,
-  VirtualObject,
 } from '../../types';
 import { aiConfigService } from './aiConfig';
 import {

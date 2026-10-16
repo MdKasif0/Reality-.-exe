@@ -34,6 +34,10 @@ class SceneContextStore {
     this.notify();
   }
 
+  public toggleDrawer() {
+    this.setDrawerOpen(!this.state.drawerOpen);
+  }
+
   public setActiveObjectContext(id: string | null) {
     this.state = { ...this.state, activeObjectContextId: id };
     this.notify();

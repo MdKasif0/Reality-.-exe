@@ -2,12 +2,9 @@ import {
   AlertCircle,
   Camera,
   Compass,
-  CornerDownLeft,
   Mic,
   MicOff,
   Send,
-  Sparkles,
-  StopCircle,
   X,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,21 +20,21 @@ interface AskRealityPanelProps {
 
 export function AskRealityPanel({ isOpen, onClose, initialQuestion = '' }: AskRealityPanelProps) {
   const [question, setQuestion] = useState(initialQuestion);
+  const [prevInitial, setPrevInitial] = useState(initialQuestion);
   const [aiState, setAiState] = useState<AIServiceState>(aiService.getState());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const { settings } = useSpatialStore();
 
+  if (initialQuestion !== prevInitial) {
+    setPrevInitial(initialQuestion);
+    setQuestion(initialQuestion);
+  }
+
   useEffect(() => {
     return aiService.subscribe(setAiState);
   }, []);
-
-  useEffect(() => {
-    if (initialQuestion) {
-      setQuestion(initialQuestion);
-    }
-  }, [initialQuestion]);
 
   useEffect(() => {
     if (chatBottomRef.current) {

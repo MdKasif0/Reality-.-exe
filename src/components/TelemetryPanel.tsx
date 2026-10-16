@@ -23,7 +23,9 @@ const GESTURE_LABELS: Record<GestureType, { label: string; color: string; desc: 
   FIST: { label: 'Closed Fist', color: 'text-amber-400', desc: 'Fold Controls / Idle' },
   V_SIGN: { label: 'V Sign (Peace)', color: 'text-indigo-400', desc: 'Toggle Spatial Mode' },
   THUMBS_UP: { label: 'Thumbs Up', color: 'text-teal-400', desc: 'Confirm / Cycle Color' },
-  TWO_HAND_EXPANSION: { label: 'Dual Expansion', color: 'text-fuchsia-400', desc: 'Scale Object' },
+  TWO_HAND_EXPANSION: { label: 'Dual Expansion', color: 'text-fuchsia-400', desc: 'Scale / Rotate Object' },
+  AIR_CIRCLE: { label: 'Air Circle', color: 'text-purple-400', desc: 'Summon Radial Menu' },
+  AIR_DRAW: { label: 'Air Draw', color: 'text-pink-400', desc: '3D Sculpting' },
 };
 
 export function TelemetryPanel({ visionState }: TelemetryPanelProps) {

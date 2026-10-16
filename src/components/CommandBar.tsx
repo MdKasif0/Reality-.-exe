@@ -23,8 +23,17 @@ export function CommandBar({ cameraState, visionState, onOpenGuide }: CommandBar
 
   // Dynamic contextual hint
   const getContextualHint = (): string => {
+    if (spatialMode === 'SCAN_REALITY') {
+      return 'Reality Scan active — aim at physical object, pinch or tap Scan Target to analyze.';
+    }
+    if (spatialMode === 'AIR_DRAW') {
+      return 'Air Draw active — pinch index & thumb to sculpt temporary 3D strokes in space.';
+    }
     if (grabbedObjectId) {
-      return 'Object grabbed — move your hand to reposition, release pinch to drop.';
+      return 'Object grabbed — move hand to reposition, release pinch to drop.';
+    }
+    if (visionState.activeGesture === 'AIR_CIRCLE') {
+      return 'Air Circle detected — summoning contextual radial menu.';
     }
     if (visionState.activeGesture === 'OPEN_PALM') {
       return 'Open Palm detected — contextual spatial menu active.';
@@ -36,7 +45,7 @@ export function CommandBar({ cameraState, visionState, onOpenGuide }: CommandBar
       return 'Thumbs Up detected — cycling holographic material color.';
     }
     if (visionState.activeGesture === 'TWO_HAND_EXPANSION') {
-      return 'Two hands detected — move hands closer/apart to scale object.';
+      return 'Two hands detected — move hands closer/apart to scale or rotate object.';
     }
     if (visionState.hands.length === 0) {
       return 'Raise hand in front of camera to begin gesture interaction.';

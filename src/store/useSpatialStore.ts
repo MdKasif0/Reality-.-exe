@@ -448,6 +448,10 @@ class SpatialStore {
     this.notify();
   }
 
+  public undo() {
+    this.undoLastAction();
+  }
+
   public resetScene() {
     this.state = {
       ...this.state,

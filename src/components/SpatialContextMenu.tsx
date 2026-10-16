@@ -1,14 +1,11 @@
 import {
-  Boxes,
   Copy,
-  Info,
   Maximize2,
   MessageSquare,
   Move,
   Palette,
   Play,
   RotateCw,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
@@ -20,7 +17,7 @@ interface SpatialContextMenuProps {
 }
 
 export function SpatialContextMenu({ onOpenAskReality }: SpatialContextMenuProps) {
-  const { contextMenuTargetId, objects, pointer } = useSpatialStore();
+  const { contextMenuTargetId, objects } = useSpatialStore();
 
   const selectedObj = useMemo(() => {
     return objects.find((o) => o.id === contextMenuTargetId);

@@ -2,10 +2,7 @@ import {
   Bookmark,
   Boxes,
   Check,
-  CheckCircle2,
-  HelpCircle,
   Info,
-  Layers,
   MessageSquare,
   Sparkles,
   Tag,
@@ -15,7 +12,6 @@ import {
 import { useState } from 'react';
 import { AIObjectFactory } from '../../services/ai/aiObjectFactory';
 import { sceneContextStore } from '../../store/useSceneContextStore';
-import { spatialStore } from '../../store/useSpatialStore';
 import { RealityScanResult } from '../../types';
 
 interface RealityScanPanelProps {

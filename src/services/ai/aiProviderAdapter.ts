@@ -126,7 +126,7 @@ export class GeminiProvider implements IVisionLanguageProvider {
       try {
         const parsed = JSON.parse(errText);
         msg = parsed.error?.message || msg;
-      } catch (e) {
+      } catch {
         msg = errText || msg;
       }
       throw new Error(msg);
