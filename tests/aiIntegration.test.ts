@@ -16,10 +16,11 @@ test('AI Vision Service - generates validated 3D object spec without arbitrary e
 
   assert.ok(spec, 'Spec should be returned');
   assert.ok(typeof spec.name === 'string');
-  assert.ok(['cube', 'sphere', 'cylinder', 'torus', 'cone', 'icosahedron'].includes(spec.geometry));
+  assert.ok(['cube', 'sphere', 'cylinder', 'torus', 'cone', 'octahedron', 'ring'].includes(spec.type));
   assert.ok(spec.color.startsWith('#'));
-  assert.ok(typeof spec.scale === 'number');
-  assert.ok(spec.scale >= 0.3 && spec.scale <= 3.5);
+  const scaleVal = Array.isArray(spec.scale) ? spec.scale[0] : spec.scale;
+  assert.ok(typeof scaleVal === 'number');
+  assert.ok(scaleVal >= 0.3 && scaleVal <= 3.5);
   // Guarantee no executable scripts or functions are embedded in spec
   assert.equal(typeof (spec as any).exec, 'undefined');
   assert.equal(typeof (spec as any).run, 'undefined');

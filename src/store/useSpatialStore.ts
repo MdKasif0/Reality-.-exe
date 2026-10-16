@@ -531,6 +531,8 @@ class SpatialStore {
       grabbedObjectId: null,
       hoveredObjectId: null,
       contextMenuTargetId: null,
+      undoStack: [],
+      redoStack: [],
     };
     this.notify();
   }

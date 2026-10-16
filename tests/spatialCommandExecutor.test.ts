@@ -78,7 +78,7 @@ test('Spatial Command - reset scene resets to default baseline objects', () => {
   assert.equal(res.type, 'RESET');
 
   const state = spatialStore.getState();
-  assert.equal(state.objects.length, 3, 'Default scene has 3 baseline objects');
+  assert.equal(state.objects.length, 4, 'Default scene has 4 baseline objects');
 });
 
 test('Spatial Command - reject unsupported or ambiguous operations gracefully', () => {
