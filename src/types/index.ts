@@ -22,7 +22,9 @@ export type GestureType =
   | 'FIST'
   | 'V_SIGN'
   | 'THUMBS_UP'
-  | 'TWO_HAND_EXPANSION';
+  | 'TWO_HAND_EXPANSION'
+  | 'AIR_CIRCLE'
+  | 'AIR_DRAW';
 
 export type GesturePhase = 'started' | 'held' | 'ended';
 
@@ -43,11 +45,11 @@ export interface PinchEvent {
   timestamp: number;
 }
 
-export type SpatialMode = 'MANIPULATE' | 'NAVIGATE' | 'INSPECT';
+export type SpatialMode = 'MANIPULATE' | 'NAVIGATE' | 'INSPECT' | 'SCAN_REALITY' | 'AIR_DRAW';
 
 export type BackgroundMode = 'camera' | 'dark' | 'minimal';
 
-export type GeometryType = 'cube' | 'sphere' | 'ring' | 'octahedron' | 'torus' | 'cylinder';
+export type GeometryType = 'cube' | 'sphere' | 'ring' | 'octahedron' | 'torus' | 'cylinder' | 'cone';
 
 export interface VirtualObject {
   id: string;
@@ -62,7 +64,12 @@ export interface VirtualObject {
   selected?: boolean;
   hovered?: boolean;
   grabbed?: boolean;
+  animation?: 'float' | 'spin' | 'pulse' | 'orbit' | 'none';
+  metadata?: Record<string, any>;
 }
+
+export * from './ai';
+
 
 export type CameraStatus = 'idle' | 'requesting' | 'ready' | 'error' | 'stopped';
 
