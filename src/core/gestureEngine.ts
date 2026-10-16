@@ -128,7 +128,8 @@ export class GestureEngine {
     }
 
     // Record index fingertip trajectory for Air Circle & Air Draw
-    const primaryIndexTip = hands[0].smoothedLandmarks[HAND_LANDMARKS.INDEX_FINGER_TIP];
+    const h0Landmarks = hands[0].smoothedLandmarks || hands[0].landmarks;
+    const primaryIndexTip = h0Landmarks[HAND_LANDMARKS.INDEX_FINGER_TIP];
     this.indexHistory.push({
       x: primaryIndexTip.x,
       y: primaryIndexTip.y,
@@ -153,8 +154,9 @@ export class GestureEngine {
 
     // 1. Two-Hand Interactions: Expansion (Scaling) & Rotation
     if (hands.length >= 2) {
-      const h1Wrist = hands[0].smoothedLandmarks[HAND_LANDMARKS.WRIST];
-      const h2Wrist = hands[1].smoothedLandmarks[HAND_LANDMARKS.WRIST];
+      const h1Landmarks = hands[1].smoothedLandmarks || hands[1].landmarks;
+      const h1Wrist = h0Landmarks[HAND_LANDMARKS.WRIST];
+      const h2Wrist = h1Landmarks[HAND_LANDMARKS.WRIST];
       const twoHandDist = distance3D(h1Wrist, h2Wrist);
 
       // Two-hand rotation angle in screen/camera XY plane
@@ -207,7 +209,7 @@ export class GestureEngine {
       const hand = hands[i];
       const state = this.handStates[i];
       const { gesture, confidence, pinchDistance, pinchCenter } = this.classifyHand(
-        hand.smoothedLandmarks,
+        hand.smoothedLandmarks || hand.landmarks,
         state
       );
 
