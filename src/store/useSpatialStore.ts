@@ -86,10 +86,12 @@ class SpatialStore {
   constructor() {
     let savedSettings: Partial<SettingsState> = {};
     try {
-      const persisted = localStorage.getItem('reality_exe_settings');
-      if (persisted) savedSettings = JSON.parse(persisted);
-    } catch (e) {
-      console.warn('Could not read settings from localStorage:', e);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const persisted = window.localStorage.getItem('reality_exe_settings');
+        if (persisted) savedSettings = JSON.parse(persisted);
+      }
+    } catch {
+      // Graceful fallback for non-browser environments
     }
 
     this.state = {

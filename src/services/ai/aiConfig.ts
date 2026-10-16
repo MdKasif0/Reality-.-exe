@@ -77,10 +77,12 @@ class AIConfigService {
   constructor() {
     let saved: Partial<AIProviderConfig> = {};
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) saved = JSON.parse(raw);
-    } catch (e) {
-      console.warn('Could not load AI config from storage:', e);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) saved = JSON.parse(raw);
+      }
+    } catch {
+      // Graceful fallback in non-browser environments
     }
 
     // Default configuration with fallback to environment variable

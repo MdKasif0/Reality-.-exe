@@ -63,7 +63,7 @@ test('Gesture Engine - Pinch detection fires when thumb and index tips are close
   let pinchStarted = false;
 
   engine.onPinch((evt) => {
-    if (evt.phase === 'START') {
+    if (evt.phase === 'started') {
       pinchStarted = true;
     }
   });
@@ -85,6 +85,7 @@ test('Gesture Engine - Pinch detection fires when thumb and index tips are close
 
   const mockHand: HandData = {
     landmarks: mockLandmarks,
+    smoothedLandmarks: mockLandmarks,
     handedness: 'Right',
     score: 0.98,
     handIndex: 0,
