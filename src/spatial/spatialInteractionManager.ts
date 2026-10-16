@@ -15,9 +15,16 @@ export class SpatialInteractionManager {
   private viewHeight: number = 6;
   private interactionDepth: number = 0;
 
+  private scanTriggerListeners: Set<() => void> = new Set();
+
   private lastModeToggleTime: number = 0;
   private lastPalmToggleTime: number = 0;
   private lastThumbsUpTime: number = 0;
+
+  public onScanTrigger(listener: () => void): () => void {
+    this.scanTriggerListeners.add(listener);
+    return () => this.scanTriggerListeners.delete(listener);
+  }
 
   public init() {
     this.unsubscribeGesture = gestureEngine.onGesture(this.handleGesture);
@@ -195,8 +202,14 @@ export class SpatialInteractionManager {
     if (event.phase === 'started') {
       spatialStore.updatePointer({ pinchActive: true });
 
+      // If in SCAN_REALITY mode, pinch initiates Reality Scan
+      if (storeState.spatialMode === 'SCAN_REALITY') {
+        this.scanTriggerListeners.forEach((fn) => fn());
+        return;
+      }
+
       // If pointing/hovering at an object in 3D, select and grab it
-      if (storeState.spatialMode !== 'SCAN_REALITY' && storeState.spatialMode !== 'AIR_DRAW') {
+      if (storeState.spatialMode !== 'AIR_DRAW') {
         const targetId = storeState.hoveredObjectId || storeState.pointer.targetedObjectId;
         if (targetId) {
           spatialStore.selectObject(targetId);
