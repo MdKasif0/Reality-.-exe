@@ -3,6 +3,7 @@ import { gestureEngine } from '../core/gestureEngine';
 import { spatialStore } from '../store/useSpatialStore';
 import { GestureEvent, HandData, PinchEvent } from '../types';
 import { mapCameraTo3D } from '../utils/mathUtils';
+import { physicalObjectSelector } from './physicalObjectSelector';
 
 export class SpatialInteractionManager {
   private unsubscribeGesture: (() => void) | null = null;
@@ -31,7 +32,7 @@ export class SpatialInteractionManager {
   }
 
   /**
-   * Update pointer and hover states based on hand tracking landmarks
+   * Update pointer, physical reticle, air drawing, and hover states
    */
   public updateFrame(hands: HandData[]) {
     if (hands.length === 0) {
@@ -57,9 +58,19 @@ export class SpatialInteractionManager {
     );
 
     const storeState = spatialStore.getState();
-    const currentGrabbedId = storeState.grabbedObjectId;
 
-    // If an object is grabbed, move it with the pointer
+    // 1. If in SCAN_REALITY mode, update physical object targeting reticle
+    if (storeState.spatialMode === 'SCAN_REALITY') {
+      physicalObjectSelector.updateFromPointer(indexTip.x, indexTip.y, this.isMirrored);
+    }
+
+    // 2. If in AIR_DRAW mode and pinching, record 3D stroke path
+    if (storeState.spatialMode === 'AIR_DRAW' && storeState.pointer.pinchActive) {
+      spatialStore.addStrokePoint([pointerX, pointerY, pointerZ]);
+    }
+
+    // 3. If an object is grabbed, move it with the pointer
+    const currentGrabbedId = storeState.grabbedObjectId;
     if (currentGrabbedId) {
       spatialStore.updateObjectPosition(currentGrabbedId, [pointerX, pointerY, pointerZ]);
     }
@@ -97,6 +108,12 @@ export class SpatialInteractionManager {
     const now = event.timestamp;
 
     switch (event.type) {
+      case 'AIR_CIRCLE': {
+        // Air Circle gesture: summon spatial radial menu
+        spatialStore.setRadialMenuOpen(true);
+        break;
+      }
+
       case 'V_SIGN': {
         // Switch between MANIPULATE and NAVIGATE mode with debounce
         if (event.phase === 'started' && now - this.lastModeToggleTime > 800) {
@@ -131,20 +148,38 @@ export class SpatialInteractionManager {
       }
 
       case 'TWO_HAND_EXPANSION': {
-        // Scale selected object
-        if (storeState.selectedObjectId && event.metadata?.scaleMultiplier) {
-          spatialStore.updateObjectScale(
-            storeState.selectedObjectId,
-            event.metadata.scaleMultiplier
-          );
+        if (storeState.selectedObjectId) {
+          // Scaling
+          if (event.metadata?.scaleMultiplier) {
+            spatialStore.updateObjectScale(
+              storeState.selectedObjectId,
+              event.metadata.scaleMultiplier
+            );
+          }
+          // Two-hand rotation
+          if (event.metadata?.deltaRotationY) {
+            spatialStore.rotateObjectBy(
+              storeState.selectedObjectId,
+              event.metadata.deltaRotationY
+            );
+          }
         }
         break;
       }
 
       case 'POINT': {
-        // Pointing: if hovering over an object, ensure it's prioritized
+        // Pointing: highlight hovered object
         if (storeState.hoveredObjectId && !storeState.selectedObjectId) {
           spatialStore.selectObject(storeState.hoveredObjectId);
+        }
+        break;
+      }
+
+      case 'FIST': {
+        // Fist: fold contextual menus
+        if (event.phase === 'started') {
+          spatialStore.setRadialMenuOpen(false);
+          spatialStore.setContextMenuTarget(null);
         }
         break;
       }
@@ -160,16 +195,23 @@ export class SpatialInteractionManager {
     if (event.phase === 'started') {
       spatialStore.updatePointer({ pinchActive: true });
 
-      // If pointing/hovering at an object, select and grab it
-      const targetId = storeState.hoveredObjectId || storeState.pointer.targetedObjectId;
-      if (targetId) {
-        spatialStore.selectObject(targetId);
-        spatialStore.grabObject(targetId);
+      // If pointing/hovering at an object in 3D, select and grab it
+      if (storeState.spatialMode !== 'SCAN_REALITY' && storeState.spatialMode !== 'AIR_DRAW') {
+        const targetId = storeState.hoveredObjectId || storeState.pointer.targetedObjectId;
+        if (targetId) {
+          spatialStore.selectObject(targetId);
+          spatialStore.grabObject(targetId);
+          // Show 3D contextual menu near object
+          spatialStore.setContextMenuTarget(targetId);
+        }
       }
     } else if (event.phase === 'released') {
       spatialStore.updatePointer({ pinchActive: false });
       if (storeState.grabbedObjectId) {
         spatialStore.grabObject(null);
+      }
+      if (storeState.spatialMode === 'AIR_DRAW') {
+        spatialStore.finishActiveStroke();
       }
     }
   };
@@ -181,6 +223,9 @@ export class SpatialInteractionManager {
     }
     spatialStore.updatePointer({ active: false, pinchActive: false, targetedObjectId: null });
     spatialStore.hoverObject(null);
+    if (storeState.spatialMode === 'AIR_DRAW') {
+      spatialStore.finishActiveStroke();
+    }
   };
 
   public destroy() {

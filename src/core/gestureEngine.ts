@@ -16,6 +16,12 @@ interface HandGestureState {
   lastPinchPos: Landmark3D | null;
 }
 
+interface Point2DWithTime {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
 export class GestureEngine {
   private gestureListeners: Set<GestureEventListener> = new Set();
   private pinchListeners: Set<PinchEventListener> = new Set();
@@ -28,7 +34,12 @@ export class GestureEngine {
 
   private previousHandCount: number = 0;
   private previousTwoHandDistance: number | null = null;
+  private previousTwoHandAngle: number | null = null;
   private pinchThresholdRatio: number = GESTURE_THRESHOLDS.PINCH_START_RATIO;
+
+  // Trajectory buffer for Air Circle and Air Draw
+  private indexHistory: Point2DWithTime[] = [];
+  private lastAirCircleTime: number = 0;
 
   private createInitialHandState(): HandGestureState {
     return {
@@ -111,41 +122,84 @@ export class GestureEngine {
 
     if (hands.length === 0) {
       this.previousTwoHandDistance = null;
+      this.previousTwoHandAngle = null;
+      this.indexHistory = [];
       return { activeGesture: 'IDLE', confidence: 0 };
     }
 
-    // 1. Check for two-hand expansion gesture if 2 hands are detected
+    // Record index fingertip trajectory for Air Circle & Air Draw
+    const primaryIndexTip = hands[0].smoothedLandmarks[HAND_LANDMARKS.INDEX_FINGER_TIP];
+    this.indexHistory.push({
+      x: primaryIndexTip.x,
+      y: primaryIndexTip.y,
+      timestamp,
+    });
+    if (this.indexHistory.length > 25) {
+      this.indexHistory.shift();
+    }
+
+    // Check Air Circle trajectory
+    if (this.detectAirCircle(timestamp)) {
+      this.lastAirCircleTime = timestamp;
+      this.emitGesture({
+        type: 'AIR_CIRCLE',
+        phase: 'started',
+        handIndex: 0,
+        confidence: 0.92,
+        timestamp,
+      });
+      return { activeGesture: 'AIR_CIRCLE', confidence: 0.92 };
+    }
+
+    // 1. Two-Hand Interactions: Expansion (Scaling) & Rotation
     if (hands.length >= 2) {
       const h1Wrist = hands[0].smoothedLandmarks[HAND_LANDMARKS.WRIST];
       const h2Wrist = hands[1].smoothedLandmarks[HAND_LANDMARKS.WRIST];
       const twoHandDist = distance3D(h1Wrist, h2Wrist);
 
+      // Two-hand rotation angle in screen/camera XY plane
+      const dx = h2Wrist.x - h1Wrist.x;
+      const dy = h2Wrist.y - h1Wrist.y;
+      const currentAngle = Math.atan2(dy, dx);
+
+      let deltaDist = 0;
+      let deltaAngle = 0;
+
       if (this.previousTwoHandDistance !== null) {
-        const delta = twoHandDist - this.previousTwoHandDistance;
-        // If hands are changing distance noticeably and both are visible
-        if (Math.abs(delta) > 0.008) {
-          this.emitGesture({
-            type: 'TWO_HAND_EXPANSION',
-            phase: 'held',
-            handIndex: 0,
-            confidence: 0.9,
-            timestamp,
-            metadata: {
-              deltaDistance: delta,
-              currentDistance: twoHandDist,
-              scaleMultiplier: 1 + delta * 2.5,
-            },
-          });
-          this.previousTwoHandDistance = twoHandDist;
-          return { activeGesture: 'TWO_HAND_EXPANSION', confidence: 0.9 };
-        }
+        deltaDist = twoHandDist - this.previousTwoHandDistance;
       }
+      if (this.previousTwoHandAngle !== null) {
+        deltaAngle = currentAngle - this.previousTwoHandAngle;
+        // Normalize angle wrap-around
+        if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+        if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+      }
+
       this.previousTwoHandDistance = twoHandDist;
+      this.previousTwoHandAngle = currentAngle;
+
+      if (Math.abs(deltaDist) > 0.008 || Math.abs(deltaAngle) > 0.04) {
+        this.emitGesture({
+          type: 'TWO_HAND_EXPANSION',
+          phase: 'held',
+          handIndex: 0,
+          confidence: 0.9,
+          timestamp,
+          metadata: {
+            deltaDistance: deltaDist,
+            currentDistance: twoHandDist,
+            scaleMultiplier: 1 + deltaDist * 2.5,
+            deltaRotationY: deltaAngle * 1.5,
+          },
+        });
+        return { activeGesture: 'TWO_HAND_EXPANSION', confidence: 0.9 };
+      }
     } else {
       this.previousTwoHandDistance = null;
+      this.previousTwoHandAngle = null;
     }
 
-    // 2. Evaluate individual hand gestures (prioritize primary hand / hand 0)
+    // 2. Evaluate individual hand gestures
     let dominantGesture: GestureType = 'IDLE';
     let dominantConfidence = 0;
 
@@ -162,7 +216,6 @@ export class GestureEngine {
         pinchDistance < (state.isPinching ? GESTURE_THRESHOLDS.PINCH_RELEASE_RATIO : this.pinchThresholdRatio);
 
       if (isCurrentlyPinching && !state.isPinching) {
-        // Pinch started
         state.isPinching = true;
         state.pinchStartPos = pinchCenter;
         state.lastPinchPos = pinchCenter;
@@ -174,7 +227,6 @@ export class GestureEngine {
           timestamp,
         });
       } else if (isCurrentlyPinching && state.isPinching) {
-        // Pinch moved
         state.lastPinchPos = pinchCenter;
         this.emitPinch({
           phase: 'moved',
@@ -184,7 +236,6 @@ export class GestureEngine {
           timestamp,
         });
       } else if (!isCurrentlyPinching && state.isPinching) {
-        // Pinch released
         state.isPinching = false;
         this.emitPinch({
           phase: 'released',
@@ -199,7 +250,6 @@ export class GestureEngine {
       if (gesture === state.currentGesture) {
         state.consecutiveFrames++;
         if (gesture !== 'IDLE') {
-          // Gesture is being held
           this.emitGesture({
             type: gesture,
             phase: 'held',
@@ -210,7 +260,6 @@ export class GestureEngine {
           });
         }
       } else {
-        // Potential gesture transition
         if (state.currentGesture !== 'IDLE') {
           this.emitGesture({
             type: state.currentGesture,
@@ -255,6 +304,49 @@ export class GestureEngine {
   }
 
   /**
+   * Detects circular motion of index fingertip over recent history
+   */
+  private detectAirCircle(timestamp: number): boolean {
+    if (this.indexHistory.length < 18) return false;
+    if (timestamp - this.lastAirCircleTime < 1500) return false; // 1.5s cooldown
+
+    // Calculate centroid
+    let sumX = 0, sumY = 0;
+    for (const p of this.indexHistory) {
+      sumX += p.x;
+      sumY += p.y;
+    }
+    const cx = sumX / this.indexHistory.length;
+    const cy = sumY / this.indexHistory.length;
+
+    // Check radii from centroid
+    let totalRadius = 0;
+    for (const p of this.indexHistory) {
+      const r = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
+      totalRadius += r;
+    }
+    const avgRadius = totalRadius / this.indexHistory.length;
+    // Circle should have noticeable size (at least 3.5% of screen)
+    if (avgRadius < 0.035 || avgRadius > 0.28) return false;
+
+    // Calculate cumulative angular displacement
+    let cumulativeAngle = 0;
+    let prevAngle = Math.atan2(this.indexHistory[0].y - cy, this.indexHistory[0].x - cx);
+
+    for (let i = 1; i < this.indexHistory.length; i++) {
+      const curAngle = Math.atan2(this.indexHistory[i].y - cy, this.indexHistory[i].x - cx);
+      let diff = curAngle - prevAngle;
+      if (diff > Math.PI) diff -= 2 * Math.PI;
+      if (diff < -Math.PI) diff += 2 * Math.PI;
+      cumulativeAngle += diff;
+      prevAngle = curAngle;
+    }
+
+    // Complete circle is approx 2 * PI (either clockwise or counter-clockwise)
+    return Math.abs(cumulativeAngle) >= 4.8;
+  }
+
+  /**
    * Geometric classification of a single hand's 21 landmarks
    */
   private classifyHand(
@@ -270,17 +362,13 @@ export class GestureEngine {
     const middleMcp = lm[HAND_LANDMARKS.MIDDLE_FINGER_MCP];
     const indexMcp = lm[HAND_LANDMARKS.INDEX_FINGER_MCP];
 
-    // Palm size: reference unit scale
     const palmScale = Math.max(0.04, distance3D(wrist, middleMcp));
 
-    // Landmark distances from wrist normalized by palm scale
     const indexTipDist = distance3D(wrist, lm[HAND_LANDMARKS.INDEX_FINGER_TIP]) / palmScale;
     const middleTipDist = distance3D(wrist, lm[HAND_LANDMARKS.MIDDLE_FINGER_TIP]) / palmScale;
     const ringTipDist = distance3D(wrist, lm[HAND_LANDMARKS.RING_FINGER_TIP]) / palmScale;
     const pinkyTipDist = distance3D(wrist, lm[HAND_LANDMARKS.PINKY_TIP]) / palmScale;
 
-    // Check individual finger extension
-    // Tip further than PIP and MCP indicates extended finger
     const isIndexExtended =
       indexTipDist > GESTURE_THRESHOLDS.FINGER_EXTENDED_RATIO &&
       distance3D(wrist, lm[HAND_LANDMARKS.INDEX_FINGER_TIP]) >
@@ -301,12 +389,10 @@ export class GestureEngine {
       distance3D(wrist, lm[HAND_LANDMARKS.PINKY_TIP]) >
         distance3D(wrist, lm[HAND_LANDMARKS.PINKY_PIP]);
 
-    // Thumb extension: thumb tip distance from index MCP
     const thumbToIndexMcp =
       distance3D(lm[HAND_LANDMARKS.THUMB_TIP], indexMcp) / palmScale;
     const isThumbExtended = thumbToIndexMcp > 0.75;
 
-    // Pinch evaluation (distance between thumb tip & index tip)
     const rawPinchDist = distance3D(
       lm[HAND_LANDMARKS.THUMB_TIP],
       lm[HAND_LANDMARKS.INDEX_FINGER_TIP]
@@ -331,7 +417,7 @@ export class GestureEngine {
       return { gesture: 'PINCH', confidence, pinchDistance: normalizedPinchDist, pinchCenter };
     }
 
-    // 2. OPEN PALM (all or most 4-5 fingers extended)
+    // 2. OPEN PALM
     const extendedCount =
       (isIndexExtended ? 1 : 0) +
       (isMiddleExtended ? 1 : 0) +
@@ -342,18 +428,17 @@ export class GestureEngine {
       return { gesture: 'OPEN_PALM', confidence: 0.95, pinchDistance: normalizedPinchDist, pinchCenter };
     }
 
-    // 3. V SIGN (Index + Middle extended, Ring + Pinky folded)
+    // 3. V SIGN
     if (isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended) {
       return { gesture: 'V_SIGN', confidence: 0.92, pinchDistance: normalizedPinchDist, pinchCenter };
     }
 
-    // 4. POINT (Index extended, Middle, Ring, Pinky folded)
+    // 4. POINT
     if (isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
       return { gesture: 'POINT', confidence: 0.9, pinchDistance: normalizedPinchDist, pinchCenter };
     }
 
-    // 5. THUMBS UP (Thumb extended upwards, other 4 fingers folded)
-    // Thumb tip Y must be significantly above wrist Y and thumb MCP in camera coords (smaller Y is higher in camera space)
+    // 5. THUMBS UP
     const thumbPointingUp =
       lm[HAND_LANDMARKS.THUMB_TIP].y < lm[HAND_LANDMARKS.THUMB_IP].y &&
       lm[HAND_LANDMARKS.THUMB_IP].y < lm[HAND_LANDMARKS.THUMB_MCP].y;
@@ -362,7 +447,7 @@ export class GestureEngine {
       return { gesture: 'THUMBS_UP', confidence: 0.88, pinchDistance: normalizedPinchDist, pinchCenter };
     }
 
-    // 6. FIST (All fingers folded close to palm/wrist)
+    // 6. FIST
     if (
       extendedCount === 0 &&
       !isThumbExtended &&
@@ -382,6 +467,8 @@ export class GestureEngine {
     ];
     this.previousHandCount = 0;
     this.previousTwoHandDistance = null;
+    this.previousTwoHandAngle = null;
+    this.indexHistory = [];
   }
 }
 

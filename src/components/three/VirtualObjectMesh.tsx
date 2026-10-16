@@ -24,22 +24,35 @@ export function VirtualObjectMesh({ object }: VirtualObjectMeshProps) {
       hash = (hash << 5) - hash + object.id.charCodeAt(i);
       hash |= 0;
     }
-    return Math.abs(hash % 100) / 100 * Math.PI * 2;
+    return (Math.abs(hash % 100) / 100) * Math.PI * 2;
   }, [object.id]);
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
 
     const time = state.clock.getElapsedTime();
+    const anim = object.animation || 'float';
 
-    // Idle rotation
+    // Idle animation behaviours
     if (!isGrabbed) {
-      meshRef.current.rotation.y += delta * 0.35;
-      meshRef.current.rotation.x += delta * 0.15;
-
-      // Subtle vertical breathing float
-      meshRef.current.position.y =
-        object.position[1] + Math.sin(time * 1.5 + phaseOffset) * 0.08;
+      if (anim === 'spin') {
+        meshRef.current.rotation.y += delta * 1.8;
+        meshRef.current.rotation.x += delta * 0.4;
+      } else if (anim === 'pulse') {
+        meshRef.current.rotation.y += delta * 0.3;
+        const pScale = 1 + Math.sin(time * 3 + phaseOffset) * 0.08;
+        meshRef.current.scale.set(pScale, pScale, pScale);
+      } else if (anim === 'orbit') {
+        meshRef.current.rotation.y += delta * 0.6;
+        meshRef.current.position.x = object.position[0] + Math.cos(time * 0.8 + phaseOffset) * 0.25;
+        meshRef.current.position.y = object.position[1] + Math.sin(time * 0.8 + phaseOffset) * 0.25;
+      } else {
+        // Default float
+        meshRef.current.rotation.y += delta * 0.35;
+        meshRef.current.rotation.x += delta * 0.15;
+        meshRef.current.position.y =
+          object.position[1] + Math.sin(time * 1.5 + phaseOffset) * 0.08;
+      }
     } else {
       meshRef.current.position.set(...object.position);
     }
@@ -66,6 +79,8 @@ export function VirtualObjectMesh({ object }: VirtualObjectMeshProps) {
         return <torusKnotGeometry args={[0.5, 0.15, 64, 16]} />;
       case 'cylinder':
         return <cylinderGeometry args={[0.5, 0.5, 1.2, 32]} />;
+      case 'cone':
+        return <coneGeometry args={[0.7, 1.4, 32]} />;
       default:
         return <boxGeometry args={[1, 1, 1]} />;
     }
@@ -87,6 +102,12 @@ export function VirtualObjectMesh({ object }: VirtualObjectMeshProps) {
       onClick={(e) => {
         e.stopPropagation();
         spatialStore.selectObject(object.id);
+        spatialStore.setContextMenuTarget(object.id);
+      }}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        spatialStore.selectObject(object.id);
+        spatialStore.setContextMenuTarget(object.id);
       }}
       onPointerOver={(e) => {
         e.stopPropagation();

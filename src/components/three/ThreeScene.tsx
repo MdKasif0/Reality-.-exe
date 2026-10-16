@@ -5,6 +5,7 @@ import { spatialInteractionManager } from '../../spatial/spatialInteractionManag
 import { spatialStore, useSpatialStore } from '../../store/useSpatialStore';
 import { ParticleField } from './ParticleField';
 import { PointerCursor3D } from './PointerCursor3D';
+import { ProceduralEffects } from '../effects/ProceduralEffects';
 import { SpatialGridFloor } from './SpatialGridFloor';
 import { VirtualObjectMesh } from './VirtualObjectMesh';
 

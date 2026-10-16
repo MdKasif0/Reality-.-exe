@@ -1,5 +1,14 @@
 import { useSyncExternalStore } from 'react';
-import { BackgroundMode, GeometryType, Pointer3DState, SettingsState, SpatialMode, VirtualObject } from '../types';
+import {
+  BackgroundMode,
+  GeometryType,
+  Pointer3DState,
+  SettingsState,
+  SpatialMode,
+  Stroke3D,
+  UndoAction,
+  VirtualObject,
+} from '../types';
 
 interface SpatialStoreState {
   objects: VirtualObject[];
@@ -9,6 +18,12 @@ interface SpatialStoreState {
   spatialMode: SpatialMode;
   backgroundMode: BackgroundMode;
   radialMenuOpen: boolean;
+  scanPanelOpen: boolean;
+  askPanelOpen: boolean;
+  contextMenuTargetId: string | null;
+  strokes: Stroke3D[];
+  activeStroke: Stroke3D | null;
+  undoStack: UndoAction[];
   pointer: Pointer3DState;
   settings: SettingsState;
   onboardingActive: boolean;
@@ -24,6 +39,7 @@ const DEFAULT_OBJECTS: VirtualObject[] = [
     scale: [1, 1, 1],
     color: '#00f0ff',
     emissive: '#003344',
+    animation: 'float',
   },
   {
     id: 'obj-2',
@@ -34,6 +50,7 @@ const DEFAULT_OBJECTS: VirtualObject[] = [
     scale: [1, 1, 1],
     color: '#38bdf8',
     emissive: '#0c4a6e',
+    animation: 'pulse',
   },
   {
     id: 'obj-3',
@@ -44,6 +61,7 @@ const DEFAULT_OBJECTS: VirtualObject[] = [
     scale: [1.1, 1.1, 1.1],
     color: '#a5f3fc',
     emissive: '#083344',
+    animation: 'spin',
   },
   {
     id: 'obj-4',
@@ -54,6 +72,7 @@ const DEFAULT_OBJECTS: VirtualObject[] = [
     scale: [0.9, 0.9, 0.9],
     color: '#22d3ee',
     emissive: '#164e63',
+    animation: 'float',
   },
 ];
 
@@ -64,7 +83,6 @@ class SpatialStore {
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    // Load persisted settings if available
     let savedSettings: Partial<SettingsState> = {};
     try {
       const persisted = localStorage.getItem('reality_exe_settings');
@@ -75,12 +93,18 @@ class SpatialStore {
 
     this.state = {
       objects: DEFAULT_OBJECTS,
-      selectedObjectId: 'obj-2', // select Neural Sphere by default
+      selectedObjectId: 'obj-2',
       hoveredObjectId: null,
       grabbedObjectId: null,
       spatialMode: 'MANIPULATE',
       backgroundMode: 'camera',
       radialMenuOpen: false,
+      scanPanelOpen: false,
+      askPanelOpen: false,
+      contextMenuTargetId: null,
+      strokes: [],
+      activeStroke: null,
+      undoStack: [],
       pointer: {
         active: false,
         position: [0, 0, 0],
@@ -121,6 +145,7 @@ class SpatialStore {
     this.state = {
       ...this.state,
       selectedObjectId: id,
+      contextMenuTargetId: id ? this.state.contextMenuTargetId : null,
       objects: this.state.objects.map((obj) => ({
         ...obj,
         selected: obj.id === id,
@@ -186,6 +211,24 @@ class SpatialStore {
     this.notify();
   }
 
+  public rotateObjectBy(id: string, deltaY: number, deltaZ: number = 0) {
+    this.state = {
+      ...this.state,
+      objects: this.state.objects.map((obj) => {
+        if (obj.id !== id) return obj;
+        return {
+          ...obj,
+          rotation: [
+            obj.rotation[0],
+            obj.rotation[1] + deltaY,
+            obj.rotation[2] + deltaZ,
+          ],
+        };
+      }),
+    };
+    this.notify();
+  }
+
   public updateObjectScale(id: string, multiplier: number) {
     this.state = {
       ...this.state,
@@ -215,6 +258,40 @@ class SpatialStore {
     this.notify();
   }
 
+  public applyObjectAnimation(
+    id: string,
+    animation: 'float' | 'spin' | 'pulse' | 'orbit' | 'none'
+  ) {
+    this.state = {
+      ...this.state,
+      objects: this.state.objects.map((obj) =>
+        obj.id === id ? { ...obj, animation } : obj
+      ),
+    };
+    this.notify();
+  }
+
+  public duplicateObject(id: string): VirtualObject | null {
+    const original = this.state.objects.find((o) => o.id === id);
+    if (!original) return null;
+
+    const newId = `obj-copy-${Date.now()}`;
+    const copy: VirtualObject = {
+      ...original,
+      id: newId,
+      name: `${original.name} (Copy)`,
+      position: [
+        original.position[0] + 0.6,
+        original.position[1] + 0.2,
+        original.position[2] + 0.2,
+      ],
+      selected: true,
+    };
+
+    this.spawnDirectObject(copy);
+    return copy;
+  }
+
   public spawnObject(type: GeometryType) {
     const id = `obj-${Date.now()}`;
     const nameMap: Record<GeometryType, string> = {
@@ -224,32 +301,58 @@ class SpatialStore {
       octahedron: 'Hyper Prism',
       torus: 'Flux Field',
       cylinder: 'Core Column',
+      cone: 'Hyper Cone',
     };
 
-    // Stagger positions slightly
     const offset = (this.state.objects.length % 5) - 2;
     const newObj: VirtualObject = {
       id,
-      name: `${nameMap[type]} #${this.state.objects.length + 1}`,
+      name: `${nameMap[type] || 'Spatial Unit'} #${this.state.objects.length + 1}`,
       type,
       position: [offset * 1.2, 0.2 + (Math.random() * 0.6 - 0.3), 0],
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
       color: PALETTE[this.state.objects.length % PALETTE.length],
       emissive: '#042f2e',
+      animation: 'float',
       selected: true,
     };
 
+    this.spawnDirectObject(newObj);
+  }
+
+  public spawnDirectObject(object: VirtualObject) {
+    this.pushUndo({
+      id: `undo-${Date.now()}`,
+      type: 'CREATE',
+      objectId: object.id,
+      previousState: null,
+      nextState: object,
+      timestamp: Date.now(),
+    });
+
     this.state = {
       ...this.state,
-      objects: [...this.state.objects.map((o) => ({ ...o, selected: false })), newObj],
-      selectedObjectId: id,
+      objects: [...this.state.objects.map((o) => ({ ...o, selected: false })), object],
+      selectedObjectId: object.id,
     };
     this.notify();
   }
 
   public deleteSelectedObject() {
     if (!this.state.selectedObjectId) return;
+    const target = this.state.objects.find((o) => o.id === this.state.selectedObjectId);
+    if (target) {
+      this.pushUndo({
+        id: `undo-${Date.now()}`,
+        type: 'DELETE',
+        objectId: target.id,
+        previousState: target,
+        nextState: null,
+        timestamp: Date.now(),
+      });
+    }
+
     const remaining = this.state.objects.filter(
       (obj) => obj.id !== this.state.selectedObjectId
     );
@@ -258,7 +361,90 @@ class SpatialStore {
       objects: remaining,
       selectedObjectId: remaining.length > 0 ? remaining[0].id : null,
       grabbedObjectId: null,
+      contextMenuTargetId: null,
     };
+    this.notify();
+  }
+
+  // Air Drawing Stroke Management
+  public addStrokePoint(pos: [number, number, number], color: string = '#00f0ff') {
+    if (!this.state.activeStroke) {
+      const newStroke: Stroke3D = {
+        id: `stroke-${Date.now()}`,
+        points: [{ position: pos, timestamp: Date.now(), color }],
+        color,
+        createdAt: Date.now(),
+      };
+      this.state = { ...this.state, activeStroke: newStroke };
+    } else {
+      const updatedPoints = [
+        ...this.state.activeStroke.points,
+        { position: pos, timestamp: Date.now(), color },
+      ];
+      this.state = {
+        ...this.state,
+        activeStroke: { ...this.state.activeStroke, points: updatedPoints },
+      };
+    }
+    this.notify();
+  }
+
+  public finishActiveStroke() {
+    if (this.state.activeStroke && this.state.activeStroke.points.length > 2) {
+      this.state = {
+        ...this.state,
+        strokes: [...this.state.strokes, this.state.activeStroke],
+        activeStroke: null,
+      };
+      this.notify();
+    } else {
+      this.state = { ...this.state, activeStroke: null };
+      this.notify();
+    }
+  }
+
+  public clearStrokes() {
+    this.state = { ...this.state, strokes: [], activeStroke: null };
+    this.notify();
+  }
+
+  // Undo System (Phase 6 Requirement 10)
+  public pushUndo(action: UndoAction) {
+    this.state = {
+      ...this.state,
+      undoStack: [action, ...this.state.undoStack.slice(0, 20)],
+    };
+  }
+
+  public undoLastAction() {
+    if (this.state.undoStack.length === 0) return;
+    const [action, ...remainingUndo] = this.state.undoStack;
+
+    switch (action.type) {
+      case 'CREATE': {
+        this.state = {
+          ...this.state,
+          objects: this.state.objects.filter((o) => o.id !== action.objectId),
+          selectedObjectId: null,
+          undoStack: remainingUndo,
+        };
+        break;
+      }
+      case 'DELETE': {
+        if (action.previousState) {
+          this.state = {
+            ...this.state,
+            objects: [...this.state.objects, action.previousState],
+            selectedObjectId: action.previousState.id,
+            undoStack: remainingUndo,
+          };
+        }
+        break;
+      }
+      default:
+        this.state = { ...this.state, undoStack: remainingUndo };
+        break;
+    }
     this.notify();
   }
 
@@ -269,6 +455,9 @@ class SpatialStore {
       selectedObjectId: 'obj-2',
       grabbedObjectId: null,
       hoveredObjectId: null,
+      contextMenuTargetId: null,
+      strokes: [],
+      activeStroke: null,
     };
     this.notify();
   }
@@ -289,6 +478,21 @@ class SpatialStore {
 
   public setRadialMenuOpen(radialMenuOpen: boolean) {
     this.state = { ...this.state, radialMenuOpen };
+    this.notify();
+  }
+
+  public setScanPanelOpen(scanPanelOpen: boolean) {
+    this.state = { ...this.state, scanPanelOpen };
+    this.notify();
+  }
+
+  public setAskPanelOpen(askPanelOpen: boolean) {
+    this.state = { ...this.state, askPanelOpen };
+    this.notify();
+  }
+
+  public setContextMenuTarget(id: string | null) {
+    this.state = { ...this.state, contextMenuTargetId: id };
     this.notify();
   }
 
