@@ -17,8 +17,18 @@ export function KeyboardControls({ onToggleGuide, onToggleSettings }: KeyboardCo
         return;
       }
 
+      // Redo with Ctrl+Y or Cmd+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))
+      ) {
+        e.preventDefault();
+        spatialStore.redo();
+        return;
+      }
+
       // Undo with Ctrl+Z or Cmd+Z
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
         spatialStore.undo();
         return;

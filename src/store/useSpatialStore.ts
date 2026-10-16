@@ -429,21 +429,28 @@ class SpatialStore {
   public pushUndo(action: UndoAction) {
     this.state = {
       ...this.state,
-      undoStack: [action, ...this.state.undoStack.slice(0, 20)],
+      undoStack: [action, ...this.state.undoStack.slice(0, 30)],
+      redoStack: [],
     };
   }
 
   public undoLastAction() {
+    this.undo();
+  }
+
+  public undo() {
     if (this.state.undoStack.length === 0) return;
     const [action, ...remainingUndo] = this.state.undoStack;
 
     switch (action.type) {
       case 'CREATE': {
+        const obj = this.state.objects.find((o) => o.id === action.objectId);
         this.state = {
           ...this.state,
           objects: this.state.objects.filter((o) => o.id !== action.objectId),
           selectedObjectId: null,
           undoStack: remainingUndo,
+          redoStack: [{ ...action, nextState: obj || action.nextState }, ...this.state.redoStack],
         };
         break;
       }
@@ -454,6 +461,7 @@ class SpatialStore {
             objects: [...this.state.objects, action.previousState],
             selectedObjectId: action.previousState.id,
             undoStack: remainingUndo,
+            redoStack: [action, ...this.state.redoStack],
           };
         }
         break;
@@ -465,8 +473,60 @@ class SpatialStore {
     this.notify();
   }
 
-  public undo() {
-    this.undoLastAction();
+  public redo() {
+    if (this.state.redoStack.length === 0) return;
+    const [action, ...remainingRedo] = this.state.redoStack;
+
+    switch (action.type) {
+      case 'CREATE': {
+        if (action.nextState) {
+          this.state = {
+            ...this.state,
+            objects: [...this.state.objects, action.nextState],
+            selectedObjectId: action.nextState.id,
+            undoStack: [action, ...this.state.undoStack],
+            redoStack: remainingRedo,
+          };
+        }
+        break;
+      }
+      case 'DELETE': {
+        this.state = {
+          ...this.state,
+          objects: this.state.objects.filter((o) => o.id !== action.objectId),
+          selectedObjectId: null,
+          undoStack: [action, ...this.state.undoStack],
+          redoStack: remainingRedo,
+        };
+        break;
+      }
+      default:
+        this.state = { ...this.state, redoStack: remainingRedo };
+        break;
+    }
+    this.notify();
+  }
+
+  public renameObject(id: string, newName: string) {
+    const cleanName = newName.trim();
+    if (!cleanName) return;
+    this.state = {
+      ...this.state,
+      objects: this.state.objects.map((o) => (o.id === id ? { ...o, name: cleanName } : o)),
+    };
+    this.notify();
+  }
+
+  public setObjects(objects: VirtualObject[]) {
+    this.state = {
+      ...this.state,
+      objects,
+      selectedObjectId: objects.length > 0 ? objects[0].id : null,
+      grabbedObjectId: null,
+      hoveredObjectId: null,
+      contextMenuTargetId: null,
+    };
+    this.notify();
   }
 
   public resetScene() {

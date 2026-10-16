@@ -15,6 +15,7 @@ export class SpatialInteractionManager {
   private viewHeight: number = 6;
   private interactionDepth: number = 0;
 
+  private grabOffset: [number, number, number] | null = null;
   private scanTriggerListeners: Set<() => void> = new Set();
 
   private lastModeToggleTime: number = 0;
@@ -76,10 +77,14 @@ export class SpatialInteractionManager {
       spatialStore.addStrokePoint([pointerX, pointerY, pointerZ]);
     }
 
-    // 3. If an object is grabbed, move it with the pointer
+    // 3. If an object is grabbed, move it with the pointer preserving initial offset
     const currentGrabbedId = storeState.grabbedObjectId;
     if (currentGrabbedId) {
-      spatialStore.updateObjectPosition(currentGrabbedId, [pointerX, pointerY, pointerZ]);
+      const off = this.grabOffset || [0, 0, 0];
+      const clampedX = Math.max(-4.8, Math.min(4.8, pointerX + off[0]));
+      const clampedY = Math.max(-3.0, Math.min(3.0, pointerY + off[1]));
+      const clampedZ = Math.max(-2.5, Math.min(2.5, pointerZ + off[2]));
+      spatialStore.updateObjectPosition(currentGrabbedId, [clampedX, clampedY, clampedZ]);
     }
 
     // Hit-testing / proximity detection for hover
@@ -212,6 +217,15 @@ export class SpatialInteractionManager {
       if (storeState.spatialMode !== 'AIR_DRAW') {
         const targetId = storeState.hoveredObjectId || storeState.pointer.targetedObjectId;
         if (targetId) {
+          const targetObj = storeState.objects.find((o) => o.id === targetId);
+          if (targetObj) {
+            const [pX, pY, pZ] = storeState.pointer.position;
+            this.grabOffset = [
+              targetObj.position[0] - pX,
+              targetObj.position[1] - pY,
+              targetObj.position[2] - pZ,
+            ];
+          }
           spatialStore.selectObject(targetId);
           spatialStore.grabObject(targetId);
           // Show 3D contextual menu near object
@@ -220,6 +234,7 @@ export class SpatialInteractionManager {
       }
     } else if (event.phase === 'released') {
       spatialStore.updatePointer({ pinchActive: false });
+      this.grabOffset = null;
       if (storeState.grabbedObjectId) {
         spatialStore.grabObject(null);
       }
@@ -231,6 +246,7 @@ export class SpatialInteractionManager {
 
   private handleHandLost = (_handIndex: number) => {
     const storeState = spatialStore.getState();
+    this.grabOffset = null;
     if (storeState.grabbedObjectId) {
       spatialStore.grabObject(null);
     }
