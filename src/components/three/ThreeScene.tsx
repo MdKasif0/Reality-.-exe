@@ -74,6 +74,9 @@ export function ThreeScene() {
 
         {/* 3D Holographic Hand Pointer */}
         <PointerCursor3D />
+
+        {/* Dynamic Procedural Visual Effects & 3D Strokes */}
+        <ProceduralEffects />
       </Canvas>
     </div>
   );
