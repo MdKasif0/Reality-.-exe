@@ -19,6 +19,9 @@ export interface SpatialCommandResult {
   requiresConfirmation?: boolean;
 }
 
+export const executeSpatialCommand = (rawCommand: string): SpatialCommandResult =>
+  SpatialCommandExecutor.execute(rawCommand);
+
 export class SpatialCommandExecutor {
   /**
    * Deterministic local natural-language command interpreter

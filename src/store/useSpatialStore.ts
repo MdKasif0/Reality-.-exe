@@ -209,10 +209,15 @@ class SpatialStore {
   }
 
   public updateObjectPosition(id: string, position: [number, number, number]) {
+    const clampedPos: [number, number, number] = [
+      Math.max(-4.8, Math.min(4.8, position[0])),
+      Math.max(-3.0, Math.min(3.0, position[1])),
+      Math.max(-2.5, Math.min(2.5, position[2])),
+    ];
     this.state = {
       ...this.state,
       objects: this.state.objects.map((obj) =>
-        obj.id === id ? { ...obj, position } : obj
+        obj.id === id ? { ...obj, position: clampedPos } : obj
       ),
     };
     this.notify();
@@ -309,8 +314,8 @@ class SpatialStore {
     return copy;
   }
 
-  public spawnObject(type: GeometryType) {
-    const id = `obj-${Date.now()}`;
+  public spawnObject(type: GeometryType): string {
+    const id = `obj-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const nameMap: Record<GeometryType, string> = {
       cube: 'Voxel Matrix',
       sphere: 'Singularity',
@@ -336,6 +341,7 @@ class SpatialStore {
     };
 
     this.spawnDirectObject(newObj);
+    return id;
   }
 
   public spawnDirectObject(object: VirtualObject) {
