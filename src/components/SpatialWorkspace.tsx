@@ -16,9 +16,11 @@ import { TargetingReticleOverlay } from './ai/TargetingReticleOverlay';
 import { CommandBar } from './CommandBar';
 import { ContextualRadialMenu } from './ContextualRadialMenu';
 import { ControlsModal } from './ControlsModal';
+import { GestureDiagnosticsHUD } from './GestureDiagnosticsHUD';
 import { HandLandmarkOverlay } from './HandLandmarkOverlay';
 import { KeyboardControls } from './KeyboardControls';
 import { NavigationRail } from './NavigationRail';
+import { SceneSnapshotModal } from './SceneSnapshotModal';
 import { SettingsModal } from './SettingsModal';
 import { SpatialContextMenu } from './SpatialContextMenu';
 import { TelemetryPanel } from './TelemetryPanel';
@@ -37,6 +39,7 @@ export function SpatialWorkspace({ onExit }: SpatialWorkspaceProps) {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSpawnModalOpen, setIsSpawnModalOpen] = useState(false);
+  const [isSnapshotsOpen, setIsSnapshotsOpen] = useState(false);
   const [isAskRealityOpen, setIsAskRealityOpen] = useState(false);
   const [askRealityPrefill, setAskRealityPrefill] = useState('');
   const [isScanPanelOpen, setIsScanPanelOpen] = useState(false);
@@ -138,6 +141,7 @@ export function SpatialWorkspace({ onExit }: SpatialWorkspaceProps) {
         cameraState={cameraState}
         visionState={visionState}
         onOpenGuide={() => setIsGuideOpen(true)}
+        onOpenSnapshots={() => setIsSnapshotsOpen(true)}
       />
 
       {/* 7. Contextual Holographic Radial Menu (triggered by Open Palm or Air Circle) */}
@@ -170,13 +174,22 @@ export function SpatialWorkspace({ onExit }: SpatialWorkspaceProps) {
         onClose={() => setIsSpawnModalOpen(false)}
       />
 
-      {/* 13. Keyboard Accessibility Handler */}
+      {/* 13. Scene Snapshots Export/Import Modal */}
+      <SceneSnapshotModal
+        isOpen={isSnapshotsOpen}
+        onClose={() => setIsSnapshotsOpen(false)}
+      />
+
+      {/* 14. Real-time Gesture Diagnostics HUD */}
+      <GestureDiagnosticsHUD />
+
+      {/* 15. Keyboard Accessibility Handler */}
       <KeyboardControls
         onToggleGuide={() => setIsGuideOpen((prev) => !prev)}
         onToggleSettings={() => setIsSettingsOpen((prev) => !prev)}
       />
 
-      {/* 14. Modals */}
+      {/* 16. Modals */}
       <ControlsModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
