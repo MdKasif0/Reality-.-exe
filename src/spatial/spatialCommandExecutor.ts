@@ -1,3 +1,4 @@
+import { spatialStore } from '../store/useSpatialStore';
 import { GeometryType } from '../types';
 
 export type SpatialCommandType =
