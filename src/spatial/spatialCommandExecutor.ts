@@ -1,5 +1,4 @@
-import { spatialStore } from '../store/useSpatialStore';
-import { GeometryType, VirtualObject } from '../types';
+import { GeometryType } from '../types';
 
 export type SpatialCommandType =
   | 'SPAWN'

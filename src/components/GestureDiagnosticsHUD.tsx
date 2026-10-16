@@ -1,4 +1,4 @@
-import { Activity, Gauge, Hand, Shield, Sparkles, X } from 'lucide-react';
+import { Activity, Hand, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { mediaPipeService } from '../core/mediaPipeService';
 import { spatialStore, useSpatialStore } from '../store/useSpatialStore';

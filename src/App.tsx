@@ -45,7 +45,7 @@ export function App() {
   };
 
   return (
-    <div className="w-full h-full min-h-screen bg-[#07070a] text-slate-100 overflow-hidden font-sans">
+    <div className={`w-full h-full min-h-screen bg-[#07070a] text-slate-100 font-sans ${currentView === 'landing' ? 'overflow-y-auto' : 'overflow-hidden'}`}>
       {currentView === 'landing' ? (
         <LandingScreen
           onEnterSpatialMode={handleEnterSpatialMode}

@@ -2,7 +2,6 @@ import {
   Activity,
   Camera,
   CameraOff,
-  Circle,
   CornerDownLeft,
   FileJson,
   Keyboard,
