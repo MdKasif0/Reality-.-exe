@@ -15,7 +15,7 @@ test('Spatial Store - object spawning, selection, and renaming', () => {
 });
 
 test('Spatial Store - Undo and Redo stack management', () => {
-  spatialStore.resetScene();
+  spatialStore.setObjects([]);
   assert.equal(spatialStore.getState().undoStack.length, 0);
 
   // Spawn object 1
@@ -35,7 +35,7 @@ test('Spatial Store - Undo and Redo stack management', () => {
 });
 
 test('Spatial Store - duplication duplicates geometry and attributes', () => {
-  spatialStore.resetScene();
+  spatialStore.setObjects([]);
   const id = spatialStore.spawnObject('torus');
   const copy = spatialStore.duplicateObject(id);
 
@@ -46,7 +46,7 @@ test('Spatial Store - duplication duplicates geometry and attributes', () => {
 });
 
 test('Spatial Store - position clamping preserves boundary bounds', () => {
-  spatialStore.resetScene();
+  spatialStore.setObjects([]);
   const id = spatialStore.spawnObject('cube');
 
   // Push object beyond boundary

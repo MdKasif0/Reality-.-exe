@@ -134,9 +134,14 @@ export class SceneSerializer {
         const item = parsed.objects[i];
         if (!item || typeof item !== 'object') continue;
 
-        const geomType: GeometryType = VALID_GEOMETRIES.has(item.type)
-          ? item.type
-          : 'cube';
+        if (!VALID_GEOMETRIES.has(item.type)) {
+          return {
+            valid: false,
+            error: `Security validation error: Unsupported geometry type "${item.type}".`,
+          };
+        }
+
+        const geomType: GeometryType = item.type;
 
         const position: [number, number, number] = [
           Math.max(-5.0, Math.min(5.0, Number(item.position?.[0]) || 0)),
@@ -213,3 +218,40 @@ export class SceneSerializer {
     return { success: true, count: result.data.objects.length };
   }
 }
+
+export const exportScene = (
+  objectsOrName?: VirtualObject[] | string,
+  sceneName: string = 'Spatial Desktop'
+): string => {
+  let name = typeof objectsOrName === 'string' ? objectsOrName : sceneName;
+  const data = SceneSerializer.exportScene(name);
+
+  if (Array.isArray(objectsOrName)) {
+    data.objects = objectsOrName.map((obj) => ({
+      id: obj.id,
+      name: String(obj.name).slice(0, 40),
+      type: obj.type,
+      position: [obj.position[0] || 0, obj.position[1] || 0, obj.position[2] || 0],
+      rotation: [obj.rotation[0] || 0, obj.rotation[1] || 0, obj.rotation[2] || 0],
+      scale: [
+        Number(Array.isArray(obj.scale) ? obj.scale[0] : obj.scale) || 1,
+        Number(Array.isArray(obj.scale) ? obj.scale[1] : obj.scale) || 1,
+        Number(Array.isArray(obj.scale) ? obj.scale[2] : obj.scale) || 1,
+      ],
+      color: obj.color || '#00f0ff',
+      emissive: obj.emissive || '#003344',
+      animation: obj.animation || 'float',
+    }));
+  }
+
+  return JSON.stringify(data, null, 2);
+};
+
+export const validateAndParse = (jsonString: string) => {
+  const res = SceneSerializer.validateAndParse(jsonString);
+  return {
+    ...res,
+    success: res.valid,
+  };
+};
+

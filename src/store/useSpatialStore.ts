@@ -545,6 +545,8 @@ class SpatialStore {
       contextMenuTargetId: null,
       strokes: [],
       activeStroke: null,
+      undoStack: [],
+      redoStack: [],
     };
     this.notify();
   }

@@ -36,12 +36,12 @@ export class SpatialCommandExecutor {
     const selectedId = state.selectedObjectId;
 
     // 1. Reset Scene
-    if (cmd.includes('reset scene') || cmd.includes('clear scene') || cmd === 'reset') {
+    if (cmd.includes('reset') || cmd.includes('clear scene')) {
       spatialStore.resetScene();
       return {
         success: true,
         type: 'RESET',
-        message: 'Spatial workspace reset to default configuration.',
+        message: 'Spatial desktop environment reset to default state.',
       };
     }
 
@@ -194,12 +194,11 @@ export class SpatialCommandExecutor {
       }
     }
 
-    // Fallback: spawn default sphere
-    spatialStore.spawnObject('sphere');
+    // Unrecognized or unsupported command
     return {
-      success: true,
-      type: 'SPAWN',
-      message: `Created 3D holographic object based on "${rawCommand}".`,
+      success: false,
+      type: 'UNKNOWN',
+      message: `Unrecognized spatial command: "${rawCommand}". Try commands like "spawn a glowing sphere", "make larger", "rotate", or "reset scene".`,
     };
   }
 }
